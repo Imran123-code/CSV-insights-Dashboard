@@ -1,5 +1,8 @@
 # CSV Insight Dashboard
 
+
+🚀 Live Demo: [Open Website](https://imranmeer.kesug.com/)
+
 A standalone web application that turns any CSV file into an auto-generated dashboard.
 
 ## Run
