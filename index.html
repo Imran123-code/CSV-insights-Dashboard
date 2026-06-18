@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSV Insight Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace">
+        <aside class="sidebar" aria-label="CSV controls">
+          <div class="brand">
+            <span class="brand-mark">CSV</span>
+            <div>
+              <h1>Insight Dashboard</h1>
+              <p>Upload any CSV and get a generated analysis workspace.</p>
+            </div>
+          </div>
+
+          <label class="dropzone" id="dropzone">
+            <input id="csv-file" type="file" accept=".csv,text/csv" />
+            <span class="upload-icon" aria-hidden="true">+</span>
+            <strong>Drop CSV here</strong>
+            <small>or select a file from your computer</small>
+          </label>
+
+          <div class="button-row">
+            <button id="sample-data" type="button">Load sample</button>
+            <button id="clear-data" type="button" class="ghost">Clear</button>
+          </div>
+
+          <div class="panel compact">
+            <h2>Dashboard Tools</h2>
+            <button id="export-analysis" type="button" class="wide ghost" disabled>
+              Export analysis JSON
+            </button>
+            <button id="print-dashboard" type="button" class="wide ghost" disabled>
+              Print dashboard
+            </button>
+          </div>
+
+          <div class="panel compact">
+            <h2>Detection Rules</h2>
+            <p>
+              Columns are typed by valid-value confidence, uniqueness ratio, and parse quality.
+              The first data row is displayed as the schema example, while formulas use all parsed rows.
+            </p>
+          </div>
+
+          <div class="panel compact">
+            <h2>Formula Basis</h2>
+            <ul>
+              <li>Mean = sum(x) / n</li>
+              <li>Sample SD = sqrt(sum((x - mean)^2) / (n - 1))</li>
+              <li>Missing % = missing / total * 100</li>
+              <li>Cardinality = unique non-empty values</li>
+            </ul>
+          </div>
+        </aside>
+
+        <section class="content">
+          <header class="topbar">
+            <div>
+              <p id="file-label" class="eyebrow">No file loaded</p>
+              <h2 id="dashboard-title">CSV Auto Analysis</h2>
+            </div>
+            <div class="stats-strip" id="stats-strip"></div>
+          </header>
+
+          <section id="empty-state" class="empty-state">
+            <div>
+              <h2>Turn a CSV into a dashboard</h2>
+              <p>
+                The app profiles headers, inspects the first data row, infers data types, computes
+                reliable summary statistics, and preselects charts that fit the detected fields.
+              </p>
+            </div>
+          </section>
+
+          <section id="dashboard" class="dashboard hidden">
+            <nav class="view-tabs" aria-label="Dashboard sections">
+              <button class="tab-button active" type="button" data-view="overview">Overview</button>
+              <button class="tab-button" type="button" data-view="columns">Columns</button>
+              <button class="tab-button" type="button" data-view="charts">Charts</button>
+              <button class="tab-button" type="button" data-view="preview">Preview</button>
+            </nav>
+
+            <section id="overview-view" class="view-panel">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow">Analysis</p>
+                  <h2>Executive Summary</h2>
+                </div>
+                <span id="quality-note"></span>
+              </div>
+              <div id="insight-grid" class="insight-grid"></div>
+              <div class="analysis-grid">
+                <section class="analysis-panel">
+                  <header>
+                    <p class="eyebrow">Relationships</p>
+                    <h3>Correlation Matrix</h3>
+                  </header>
+                  <div id="correlation-matrix" class="table-wrap"></div>
+                </section>
+                <section class="analysis-panel">
+                  <header>
+                    <p class="eyebrow">Types</p>
+                    <h3>Column Mix</h3>
+                  </header>
+                  <div id="type-breakdown" class="type-breakdown"></div>
+                </section>
+              </div>
+            </section>
+
+            <section id="columns-view" class="view-panel hidden">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow">Schema</p>
+                  <h2>Detected Columns</h2>
+                </div>
+                <div class="toolbar">
+                  <input id="column-search" type="search" placeholder="Search columns" />
+                  <select id="type-filter" aria-label="Filter columns by type">
+                    <option value="all">All types</option>
+                  </select>
+                </div>
+              </div>
+              <div id="schema-grid" class="schema-grid"></div>
+            </section>
+
+            <section id="charts-view" class="view-panel hidden">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow">Charts</p>
+                  <h2>Auto-Populated Visuals</h2>
+                </div>
+                <span id="chart-count"></span>
+              </div>
+              <div class="chart-controls">
+                <input id="chart-search" type="search" placeholder="Search charts" />
+                <select id="chart-family" aria-label="Filter chart type">
+                  <option value="all">All chart families</option>
+                  <option value="quality">Data quality</option>
+                  <option value="distribution">Distribution</option>
+                  <option value="summary">Numeric summary</option>
+                  <option value="category">Category frequency</option>
+                  <option value="aggregate">Grouped metrics</option>
+                  <option value="time">Time series</option>
+                  <option value="relationship">Relationships</option>
+                  <option value="matrix">Category matrix</option>
+                </select>
+                <label class="range-control">
+                  <span>Charts</span>
+                  <input id="chart-limit" type="range" min="6" max="40" value="40" />
+                  <strong id="chart-limit-value">40</strong>
+                </label>
+              </div>
+              <div id="chart-grid" class="chart-grid"></div>
+            </section>
+
+            <section id="preview-view" class="view-panel hidden">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow">Rows</p>
+                  <h2>Data Preview</h2>
+                </div>
+                <span id="preview-count"></span>
+              </div>
+              <div id="data-preview" class="table-wrap"></div>
+            </section>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
